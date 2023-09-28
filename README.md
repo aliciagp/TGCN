@@ -6,3 +6,11 @@ The APP-TGCN has 25 modules 880 genes size. The hubs explain most of the gene ex
 
 We show that APP expression in brain plays cell-specific key roles in several biological processes: neuron development through oligodendrocytes and in regulation of the synaptic vesicle cycle in dopaminergic neurons, which we found associated with AD pathobiology.
 
+
+- Notebook for the creation and results of the ROSMAP based APP-TGCN.
+
+- Notebook for the creation and results of the MSBB based APP-TGCN used for replication of results from the ROSMAP APP-TGCN.
+
+- [Notebook for the replication of ROSMAP APP-TGCN on the MSBB APP-TGCN](https://github.com/aliciagp/TGCN/blob/master/notebooks/template_APP_MSBB.html)
+
+
