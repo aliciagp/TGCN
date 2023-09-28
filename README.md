@@ -7,6 +7,8 @@ The [ROSMAP APP-TGCN](https://github.com/aliciagp/TGCN/blob/master/notebooks/tem
 We show that APP expression in brain plays cell-specific key roles in several biological processes: neuron development through oligodendrocytes and in regulation of the synaptic vesicle cycle in dopaminergic neurons, which we found associated with AD pathobiology.
 
 
+Here you can find the notebooks for the creation and replication of the APP-TGCNs:
+
 - [Notebook for the creation and results of the ROSMAP based APP-TGCN](https://github.com/aliciagp/TGCN/blob/master/notebooks/template_APP_ROSMAP.html)
 
 - [Notebook for the creation and results of the MSBB based APP-TGCN used for replication of results from the ROSMAP APP-TGCN](https://github.com/aliciagp/TGCN/blob/master/notebooks/template_APP_MSBB.html)
