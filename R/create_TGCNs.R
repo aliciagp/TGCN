@@ -1082,8 +1082,8 @@ testAllCutoffs <- function(exprData,
     results <- readRDS(paste0(path, "/Net/", targetName, "_", tissueName, "_TGCNs.rds"))
   }
 
-  # template=list.files(system.file("report", "", package = "TGCN"), full.names=T)
-  template <- "C:/Users/alici/Downloads/paperJuan/TGCN/inst/report/template.Rmd"
+  template=list.files(system.file("report", "", package = "TGCN"), full.names=T)
+
   rmarkdown::render(input = template,
                     output_file = paste0(path, "/results/", targetName, "_", tissueName, "_TGCNs.html"),
                     params = list(target=targetName, tissue=tissueName, path=path))
