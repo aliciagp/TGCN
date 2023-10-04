@@ -1,11 +1,30 @@
 Package: TGCN
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Targeted gene co-expression networks
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Authors@R: c(person("Alicia", "Gómez-Pascual", email = "alicia.gomez1@um.es", 
+    role = c("aut", "cre")), person("Juan A.", "Botía", role = "aut"))
+Maintainer: <alicia.gomez1@um.es>
+Description: Targeted GCNs are a new modelling approach we designed that creates more specific networks, focused on a phenotype. 
+    A TGCN tries to explain as much variation of the phenotype as possible within the sample while describing, functionally, 
+    the genes involved. 
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
+Imports:
+    caret,
+    circlize,
+    CoExpNets,
+    ComplexHeatmap,
+    doParallel,
+    ggplot2,
+    glmnet,
+    gprofiler2,
+    psych,
+    RColorBrewer,
+    rrvgo,
+    stringr,
+    WGCNA
+RoxygenNote: 7.1.0
+URL: https://github.com/aliciagp/TGCN
+BugReports: https://github.com/aliciagp/TGCN/issues
