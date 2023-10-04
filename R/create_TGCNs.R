@@ -808,6 +808,7 @@ getModulesAnnotation <- function(net,
   # TGCN already characterized?
   if(!dir.exists(paste0(path, "/results/"))) {
     dir.create(paste0(path, "/results/"))
+    files <- NA
   } else {
     files <- list.files(path=paste0(path, "/results/"), pattern="csv", full.names=T)
     files <- files[grep(cutoff, files)]
