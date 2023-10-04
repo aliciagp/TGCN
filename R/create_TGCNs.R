@@ -992,7 +992,7 @@ testAllCutoffs <- function(exprData,
     file <- NA
   } else {# Check if the file is already created
     file <- list.files(path=paste0(path, "/hubGenes/"), full.names=T)
-    file <- file[match(paste0(path, "/hubGenes/", targetName, "_", tissueName, "_hubGenes_all_cutoffs.rds"), file)]
+    file <- file[match(paste0(path, "/hubGenes/", targetName, "_", tissueName, "_hubGenes.rds"), file)]
   }
 
   if(is.na(file)) {
@@ -1014,10 +1014,10 @@ testAllCutoffs <- function(exprData,
                             force=T)
 
     if(save==T) {
-      saveRDS(hubGenes, paste0(path, "/hubGenes/", targetName, "_", tissueName, "_hubGenes_all_cutoffs.rds"))
+      saveRDS(hubGenes, paste0(path, "/hubGenes/", targetName, "_", tissueName, "_hubGenes.rds"))
     }
   } else {
-    hubGenes <- readRDS(paste0(path, "/hubGenes/", targetName, "_", tissueName, "_hubGenes_all_cutoffs.rds"))
+    hubGenes <- readRDS(paste0(path, "/hubGenes/", targetName, "_", tissueName, "_hubGenes.rds"))
   }
 
 
@@ -1027,7 +1027,7 @@ testAllCutoffs <- function(exprData,
     file <- NA
   } else {# Check if the file is already created
     file <- list.files(path=paste0(path, "/Net/"), full.names=T)
-    file <- file[match(paste0(path, "/Net/", targetName, "_", tissueName, "_TGCN_all_cutoffs.rds"), file)]
+    file <- file[match(paste0(path, "/Net/", targetName, "_", tissueName, "_TGCNs.rds"), file)]
   }
 
 
@@ -1082,7 +1082,7 @@ testAllCutoffs <- function(exprData,
     results <- readRDS(paste0(path, "/Net/", targetName, "_", tissueName, "_TGCNs.rds"))
   }
 
-  template_path=system.file("report", "",
+  template_path=system.file("inst/report/", "",
                             package = "TGCN")
 
   rmarkdown::render(input = paste0(template_path, "template.Rmd"),
