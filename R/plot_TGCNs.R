@@ -74,12 +74,11 @@ plotReducedGOterms <- function(go_results, module=T) {
   name <- names(mylist)
 
   for (name in names(mylist)) {
-    print(name)
     simMatrix <- calculateSimMatrix(mylist[[name]]$term_id,
                                     orgdb="org.Hs.eg.db",
                                     ont="BP",
                                     method="Rel")
-    print(dim(simMatrix))
+
     if(!is.null(dim(simMatrix))) {
       if(nrow(simMatrix)>5) {
         scores <- setNames(-log10(mylist[[name]]$p_value), mylist[[name]]$term_id)

@@ -12,9 +12,9 @@ output:
     toc_float: yes
     number_sections: yes
 params:
-  target: ""
-  tissue: ""
-  path: ""
+  target: "target"
+  tissue: "tissue"
+  path: "path"
 ---
 
 <style>
@@ -41,12 +41,13 @@ tgcns <- readRDS(paste0(params$path, "/Net/", params$target, "_", params$tissue,
 
 
 ```{r}
-grid.arrange(tgcns$selectCutoff$nHubs + 
-               theme(text=element_text(size=12)) + 
-               labs(title="Number of hubs per ratio of appearance"), 
-             tgcns$selectCutoff$stats + 
-               theme(legend.position="bottom", text=element_text(size=12)) + 
-               labs(title="Train and test error per ratio of appearance"))
+tgcns$selectRatio$nHubs + 
+  theme(text=element_text(size=12)) + 
+  labs(title="Number of hubs per ratio of appearance")
+
+tgcns$selectRatio$stats + 
+  theme(legend.position="bottom", text=element_text(size=12)) +         
+  labs(title="Train and test error per ratio of appearance")
 ```
 
 ```{r}
