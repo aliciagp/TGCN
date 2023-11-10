@@ -53,3 +53,10 @@ Results will be saved into three different folders: hubGenes, Net and results. R
 - [Notebook for the replication of ROSMAP APP-TGCN on the MSBB APP-TGCN](https://htmlpreview.github.io/?https://github.com/aliciagp/TGCN/blob/master/notebooks/validation.html)
 
 
+## Credits
+
+The authors of the package are Alicia Gómez-Pascual, PhD student, Funded by the Seneca Foundation and Juan A. Botía, Professor from the Universidad de Murcia. This package was developped under the supervision of Laura Ibañez from Washington University. The development of this package has been possible thanks to the previous work of Guillermo Rocamora from UCL GOS Institute of Child Health. 
+
+
+
+

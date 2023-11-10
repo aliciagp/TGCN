@@ -381,25 +381,15 @@ getHubGenes <- function(exprData,
     hubGenesPerCutoff <- sapply(seq(1,t,1), function(x) names(hubs)[hubs>=x])
     names(hubGenesPerCutoff) <- paste0("cutoff", 1:t)
 
-    # Check recommended cutoffs
-    if(force==F) {
-      len <- rev(lengths(hubGenesPerCutoff))
-      cat("Number of hubs per ratio of appearance\n")
-      print(len)
-      cutoffs_recommended <- as.numeric(gsub("cutoff", "", names(len[len>=5])[1:3]))
-      max_cutoff <- max(cutoffs_recommended)
-      index <- which(cutoffs>max_cutoff)
+    # Cutoffs selected
+    len <- rev(lengths(hubGenesPerCutoff))
+    cat("Number of hubs per ratio of appearance\n")
+    print(len)
 
-      if(length(index)>0) {
-        cutoffs <- cutoffs[-index]
-      }
-
-      if(length(cutoffs)==0) {
-        cutoffs <- cutoffs_recommended
-      }
-
-    } else {
+    if(is.null(cutoffs)) {
       cutoffs <- sort(as.numeric(gsub("cutoff", "", names(hubGenesPerCutoff[lengths(hubGenesPerCutoff)>1]))), decreasing=T)
+    } else {
+      cutoffs <- intersect(cutoffs, as.numeric(gsub("cutoff", "", names(hubGenesPerCutoff[lengths(hubGenesPerCutoff)>1]))))
     }
 
     cat("Cutoffs selected are", cutoffs, "\n")
@@ -638,6 +628,8 @@ getModules <- function(hubs,
       C <- C[C$cor>abs(minCor), ]
       C <- C[order(abs(C$cor), decreasing=T), ] # gene set ordered by decreasing correlation with h
 
+      C$genes <- gsub("\\.", "-", C$genes)
+
       size <- s # initially, the size of the module (size) is the same as the minimum size (s)
 
       # If we found no genes correlated with h with a minCor of x, stop here
@@ -800,10 +792,11 @@ getModulesAnnotation <- function(net,
                                  covs,
                                  path,
                                  save=T,
-                                 overwrite=F,
+                                 overwrite=T,
                                  cutoff,
                                  tissueName,
-                                 targetName) {
+                                 targetName,
+                                 reduced=F) {
 
   # TGCN already characterized?
   if(!dir.exists(paste0(path, "/results/"))) {
@@ -828,7 +821,11 @@ getModulesAnnotation <- function(net,
 
   # Reduced GO terms
   go_results <- enrich$enrichment
-  go_reduced <- plotReducedGOterms(go_results[go_results$source=="GO:BP", ], module=F)
+  if(reduced==T) {
+    go_reduced <- plotReducedGOterms(go_results[go_results$source=="GO:BP", ], module=F)
+  } else {
+    go_reduced <- NULL
+  }
 
   # Module-trait corr
   colors <- mynet$hubGene
@@ -917,7 +914,7 @@ getModulesAnnotation <- function(net,
                                       pval=traits$pval, plot_pval=traits$htPval),
                  crossTabPlot=list(pval=ctp$df, plot=paste0("see ", path, "/results/", targetName, "_", tissueName, "_", cutoff, "_TGCN_crossTabPlot.png figure")))
   } else {
-    result <- readRDS(paste0(path, "/Net/", targetName, "_", tissueName, "_TGCNs_all_cutoffs.rds"))
+    result <- readRDS(paste0(path, "/Net/", targetName, "_", tissueName, "_TGCNs.rds"))
   }
 
   return(result)
@@ -969,7 +966,9 @@ testAllCutoffs <- function(exprData,
                            seed=1234,
                            save=T,
                            overwrite=T,
-                           path=getwd()) {
+                           path=getwd(),
+                           reduced=F,
+                           report=F) {
 
   # Load libraries
   require(WGCNA)
@@ -1065,10 +1064,11 @@ testAllCutoffs <- function(exprData,
                                    covs=covs,
                                    save=save,
                                    path=path,
-                                   overwrite=overwrite,
+                                   overwrite=T,
                                    cutoff=paste0("c", cutoff),
                                    tissueName=tissueName,
-                                   targetName=targetName)
+                                   targetName=targetName,
+                                   reduced=reduced)
 
       results[["nets"]][[paste0("c", cutoff)]] <- net2
 
@@ -1082,12 +1082,13 @@ testAllCutoffs <- function(exprData,
     results <- readRDS(paste0(path, "/Net/", targetName, "_", tissueName, "_TGCNs.rds"))
   }
 
-  template=list.files(system.file("report", "", package = "TGCN"), full.names=T)
+  if(report==T) {
+    template=list.files(system.file("report", "", package = "TGCN"), full.names=T)
 
-  rmarkdown::render(input = template,
-                    output_file = paste0(path, "/results/", targetName, "_", tissueName, "_TGCNs.html"),
-                    params = list(target=targetName, tissue=tissueName, path=path))
-
+    rmarkdown::render(input = template,
+                      output_file = paste0(path, "/results/", targetName, "_", tissueName, "_TGCNs.html"),
+                      params = list(target=targetName, tissue=tissueName, path=path))
+  }
 
   return(results)
 

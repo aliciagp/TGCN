@@ -21,25 +21,25 @@ selectAppearanceRatio <- function(hubGenes) {
 
   df <- cbind(error, nHubs)
   df$cutoff <- gsub("cutoff", "", df$cutoff)
-  df$cutoff <- factor(df$cutoff, levels=1:length(hubGenes$LM))
+  df$cutoff <- factor(df$cutoff, levels=unique(sort(as.numeric(as.character(df$cutoff)))))
   df$set <- factor(df$set, levels=c("train", "test"))
   ylab <- colnames(df)[1]
   colnames(df)[1] <- "metric"
 
   p1 <- ggplot(df, aes(x=cutoff, y=nHubs)) +
-               geom_point() +
-               theme_classic() +
-               theme(text=element_text(size=14)) +
-               ylab("Number of hub genes") +
-               xlab("Ratio of appearance")
+    geom_point() +
+    theme_classic() +
+    theme(text=element_text(size=14)) +
+    ylab("Number of hub genes") +
+    xlab("Ratio of appearance")
 
   p2 <- ggplot(df, aes(x=cutoff, y=metric, color=set, group=set)) +
-               geom_point() +
-               geom_line() +
-               theme_classic() +
-               theme(text=element_text(size=14)) +
-               ylab(ylab) +
-               xlab("Ratio of appearance")
+    geom_point() +
+    geom_line() +
+    theme_classic() +
+    theme(text=element_text(size=14)) +
+    ylab(ylab) +
+    xlab("Ratio of appearance")
 
   return(list(nHubs=p1, stats=p2))
 }
@@ -131,7 +131,10 @@ plotModulesOverlap <- function(name1="TGCN1",
                                significant=F,
                                moduleSize=F,
                                main="",
-                               diag=T) {
+                               diag=T,
+                               other=F,
+                               cex.text=0.8,
+                               cex.lab=0.8) {
 
   # Load library
   require(WGCNA)
@@ -164,15 +167,10 @@ plotModulesOverlap <- function(name1="TGCN1",
   }
 
   # Create a fake module to include the non-common genes if necessary
-  diff <- setdiff(tgcn1$genes, tgcn2$genes)
-  index1 <- match(diff, tgcn1$genes)
-  index2 <- match(diff, tgcn2$genes)
-  newmodule <- data.frame(hubGene=rep("OTHER", length(diff)), genes=diff)
-
-  if(sum(is.na(index2))>0) {
+  if(other==T) {
+    diff <- setdiff(tgcn1$genes, tgcn2$genes)
+    newmodule <- data.frame(hubGene=rep("OTHER", length(diff)), genes=diff)
     tgcn2 <- rbind(tgcn2, newmodule)
-  } else if(sum(is.na(index1))>0) {
-    tgcn1 <- rbind(tgcn1, newmodule)
   }
 
   # Get overlap table (code from overlapTable function from WGCNA package adapted to this specific case)
@@ -251,17 +249,18 @@ plotModulesOverlap <- function(name1="TGCN1",
 
   if(moduleSize==T) {
     ySymbols = paste0(names(ModTotals.1), ": ", as.vector(ModTotals.1))
-    xSymbols = paste0(names(ModTotals.1), ": ", as.vector(ModTotals.1))
+    xSymbols = paste0(names(ModTotals.2), ": ", as.vector(ModTotals.2))
   } else {
     ySymbols = names(ModTotals.1)
     xSymbols = names(ModTotals.2)
   }
 
-  # par(mar = c(5, 6, 4, 4) + 0.01)
+  par(mgp=c(5,0,0))
+  par(mar = c(6, 6, 2.5, 1) + 0.5)
 
   p <- labeledHeatmap(Matrix = XTbl$pTable,
                       yLabels = ySymbols,
-                      xLabels = paste(" ", names(ModTotals.2)),
+                      xLabels = xSymbols,
                       colorLabels = TRUE,
                       xColorWidth=0.03,
                       yColorWidth=0.02,
@@ -271,7 +270,7 @@ plotModulesOverlap <- function(name1="TGCN1",
                       naColor = "white",
                       xlab = paste0(name2, " modules"),
                       ylab = paste0(name1, " modules"),
-                      cex.text = 0.6, cex.lab = 0.6, cex.main=0.8, setStdMargins = FALSE,
+                      cex.text = cex.text, cex.lab = cex.lab, cex.main=1.5, setStdMargins = F,
                       plotLegend = TRUE,
                       main=main)
 
@@ -339,40 +338,60 @@ getLASSOstats <- function(hubGenes) {
   require(stringr)
   results <- data.frame()
 
-  # Get the short name
-  name <- str_split(basename(hubGenes), "_")[[1]][1]
+  for(hub in hubGenes) {
+    # Get the short name
+    name <- str_split(basename(hub), "_")[[1]][2]
 
-  # Read the file
-  file <- readRDS(hubGenes)
-  m <- mean(unlist(lapply(file$lasso_models, function(x) length(x$trainSamples))))
-  p <- nrow(stats::coef(file$lasso_models$iter1$model, s="lambda.min"))
+    # Read the file
+    file <- readRDS(hub)
+    m <- mean(unlist(lapply(file$LASSO$models, function(x) length(x$trainSamples))))
+    p <- nrow(stats::coef(file$LASSO$models$iter1$model, s="lambda.min"))
+    m <- data.frame(name=name, metric="m", value=m)
+    p <- data.frame(name=name, metric="p", value=p)
 
-  results <- rbind(results, data.frame(values=m, metric="m", name=name))
-  results <- rbind(results, data.frame(values=p, metric="p", name=name))
+    # Get R2 and RMSE
+    df <- do.call("rbind", lapply(file$LASSO$models, function(x) x$metrics))
+    df$name <- rep(name, nrow(df))
+    df$set <- gsub(".*\\.", "", rownames(df))
+    df$iter <- gsub("\\..*", "", rownames(df))
+    df <- melt(df, id.var = c("name", "set", "iter"),
+               variable.name = 'metric')
 
-  # Get RMSE of the lasso models
-  df <- stack(getLassoMetrics(file$lasso_models))
-  df$name <- rep(name, nrow(df))
-  df$set <- rep(c("Train", "Test"), nrow(df)/2)
-  colnames(df)[2] <- "metric"
-  df$metric <- paste0(df$metric, "_", df$set)
-  df$set <- NULL
-  results <- rbind(results, df)
+    df$metric <- as.character(df$metric)
+    df$set <- as.character(df$set)
 
-  # Get instability of the lasso models
-  inst <- getLASSOinstability(file$lasso_models)$M
-  inst[upper.tri(inst, diag=T)] <- NA
-  inst <- stack(inst)
-  inst <- inst[!is.na(inst$values), ]
-  inst$name <- rep(name, nrow(inst))
-  colnames(inst)[2] <- "metric"
-  inst$metric <- rep("Jaccard", nrow(inst))
-  results <- rbind(results, inst)
+    df$metric[which(df$metric=="R2" & df$set=="train")] <- "R2_train"
+    df$metric[which(df$metric=="R2" & df$set=="test")] <- "R2_test"
 
-  results$name <- gsub("\\s*\\([^\\)]+\\)","", results$name)
-  results <- results[-which(results$metric %in% "nzero_Test"), ]
-  results$metric <- gsub("nzero_Train", "nzero", results$metric)
-  results$metric <- factor(results$metric, levels=c("m", "p", "Jaccard", "nzero", "RMSE_Train", "RMSE_Test", "R2_Train", "R2_Test",  "numSamples_Train", "numSamples_Test"))
+    df$metric[which(df$metric=="RMSE" & df$set=="train")] <- "RMSE_train"
+    df$metric[which(df$metric=="RMSE" & df$set=="test")] <- "RMSE_test"
+
+    df$iter <- NULL
+    df$set <- NULL
+
+    # Get number of hubs selected
+    df2 <- as.data.frame(do.call("rbind", lapply(file$LASSO$models, function(x) length(x$coeffs$genes))))
+    df2$name <- rep(name, nrow(df2))
+    df2$metric <- rep("nzero", nrow(df2))
+    colnames(df2)[1] <- "value"
+    df2 <- df2[, c("name", "metric", "value")]
+
+    # Get Jaccard index
+    inst <- getLASSOinstability(file$LASSO$models)$M
+    inst[upper.tri(inst, diag=T)] <- NA
+    inst <- stack(inst)
+    inst <- inst[!is.na(inst$values), ]
+    inst$name <- rep(name, nrow(inst))
+    colnames(inst)[2] <- "metric"
+    inst$metric <- rep("Jaccard", nrow(inst))
+    inst <- inst[, c("name", "metric", "values")]
+    colnames(inst)[3] <- "value"
+    results <- rbind(results, rbind(m, p, df, df2, inst))
+
+  }
+
+  results$metric <- factor(results$metric, levels=c("m", "p", "Jaccard", "nzero", "RMSE_train", "RMSE_test", "R2_train", "R2_test"))
+
 
   return(results)
 
@@ -410,13 +429,13 @@ getColors <- function(names, palette="Set2") {
 #' @export
 #' @examples
 
-plotLASSOstats <- function(stats, colors=NULL, order=F) {
+plotLASSOstats <- function(stats, colors=NULL, order=T) {
 
   require(RColorBrewer)
   require(ggplot2)
 
   if(order==T) {
-    mean <- aggregate(stats$values[stats$metric=="Jaccard"], list(stats$name[stats$metric=="Jaccard"]), FUN="mean")
+    mean <- aggregate(stats$value[stats$metric=="Jaccard"], list(stats$name[stats$metric=="Jaccard"]), FUN="mean")
     mean <- mean[order(mean$x, decreasing=F), ]
     stats$name <- factor(stats$name, levels=mean$Group.1)
   }
@@ -433,40 +452,43 @@ plotLASSOstats <- function(stats, colors=NULL, order=F) {
       stringr::str_wrap(x, chars)
     }
 
-    p <- ggplot(stats, aes(y=values, x=name, fill=group)) +
-                facet_wrap(.~metric, scales="free_y", ncol=5, labeller=as_labeller(wrap_text)) +
-                geom_bar(data=subset(stats, metric %in% "m"), stat="identity", position="dodge") +
-                geom_boxplot(data = subset(stats, metric %in% c("Jaccard", "nzero", "RMSE_Train", "RMSE_Test")),
-                             outlier.size=0.3, size=0.3) +
-                theme_classic() +
-                xlab("") +
-                scale_fill_brewer(palette="Blues") +
-                labs(fill="Group") +
-                theme(text=element_text(size=14),
-                      strip.text.x=element_text(size=15),
-                      axis.text.x=element_text(angle=45, hjust=1, vjust=1))
+    p <- ggplot(stats, aes(y=value, x=name, fill=group)) +
+      facet_wrap(.~metric, scales="free_y", ncol=5, labeller=as_labeller(wrap_text)) +
+      geom_bar(data=subset(stats, metric %in% "m"), stat="identity", position="dodge") +
+      geom_boxplot(data = subset(stats, metric %in% c("Jaccard", "nzero", "RMSE_train", "RMSE_test")),
+                   outlier.size=0.3, size=0.3) +
+      theme_classic() +
+      xlab("") +
+      scale_fill_brewer(palette="Blues") +
+      labs(fill="Group") +
+      theme(text=element_text(size=14),
+            strip.text.x=element_text(size=15),
+            axis.text.x=element_text(angle=45, hjust=1, vjust=1))
+
+
   } else {
     wrap_text <- function(x, chars = 5) {
       x <- gsub("_", " ", x)
       stringr::str_wrap(x, chars)
     }
 
-  p <- ggplot(stats, aes(y=name, x=values, fill=name)) +
-              facet_grid(.~metric, scales="free_x", labeller=as_labeller(wrap_text)) +
-              geom_violin(data = subset(stats, metric %in% c("Jaccard", "Jaccard_corrected"))) +
-              geom_boxplot(data = subset(stats, metric %in% c("nzero", "RMSE_Train", "RMSE_Test"))) +
-              geom_bar(data=subset(stats, metric %in% c("m", "p")),stat="identity") +
-              theme_classic() +
-              theme(legend.position="none",
-                    text=element_text(size=14),
-                    panel.spacing = unit(0.7, "lines"),
-                    strip.text.x = element_text(size=13),
-                    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size=13)) +
-              ylab("") +
-              xlab("values") +
-              scale_fill_manual(values=colors)
 
-    }
+    p <- ggplot(stats, aes(y=name, x=value, fill=name)) +
+      facet_grid(.~metric, scales="free_x", labeller=as_labeller(wrap_text)) +
+      geom_violin(data = subset(stats, metric %in% c("Jaccard"))) +
+      geom_boxplot(data = subset(stats, metric %in% c("nzero", "RMSE_train", "RMSE_test"))) +
+      geom_bar(data=subset(stats, metric %in% c("m", "p")),stat="identity") +
+      theme_classic() +
+      theme(legend.position="none",
+            text=element_text(size=14),
+            panel.spacing = unit(0.7, "lines"),
+            strip.text.x = element_text(size=13),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size=13)) +
+      ylab("") +
+      xlab("value") +
+      scale_fill_manual(values=colors)
+
+  }
 
   return(list(p=p, colors=colors))
 
@@ -665,26 +687,31 @@ plotGOenrichStats <- function(hubs) {
 
   superDF <- data.frame()
 
-  for(h in files) {
-    name <- str_split(basename(h), "_")[[1]][1]
+  for(h in hubs) {
+    name <- str_split(basename(h), "_")[[1]][2]
     h <- readRDS(h)
-    df <- h$lasso_hubGenes_enrichment_stats
-    df$query <- gsub("cutoff", "", df$query)
-    df$query <- factor(df$query, levels=seq(1,10,1))
+    df <- h$LASSO$hubs_enrich_stats
+    # df$sum_corrected[is.na(df$sum_corrected)] <- 0
+    df$query <- as.numeric(as.character(gsub("cutoff", "", df$query)))
+    df$query <- factor(df$query, levels=sort(df$query))
     df$name <- as.factor(rep(name, nrow(df)))
     superDF <- rbind(superDF, df)
   }
 
+  superDF$name <- gsub("\\(.*", "", superDF$name)
+  superDF$name <- gsub("([a-z])([A-Z])", "\\1 \\L\\2", superDF$name, perl = TRUE)
+
   p <- ggplot(data=superDF, aes(x=query, y=sum_corrected, group=name, color=name)) +
-              geom_point() +
-              geom_line() +
-              theme_classic() +
-              xlab("cutoff") +
-              ylab(expression(paste("sum (-", log[10] ~ "Pval)/", "\n module size"))) +
-              theme(text=element_text(size=14),
-                    legend.key.size = unit(0.5, 'cm')) +
-              scale_y_continuous(limits=c(0,2), breaks=seq(0,2, 0.5)) +
-              geom_hline(yintercept=-log10(0.05), linetype="dashed", color = "red")
+    geom_point() +
+    geom_line() +
+    theme_classic() +
+    xlab("Ratio of appearance, g(r)") +
+    ylab(expression(paste("sum (-", log[10] ~ "Pval)/", "\n module size"))) +
+    theme(text=element_text(size=14),
+          legend.key.size = unit(0.5, 'cm')) +
+    scale_y_continuous(limits=c(0,2), breaks=seq(0,2, 0.5)) +
+    geom_hline(yintercept=-log10(0.05), linetype="dashed", color = "red") +
+    labs(color="Brain region")
 
 
   return(p)
@@ -752,7 +779,7 @@ getCTenrich <- function(net) {
 plotCTenrich <- function(ct, target="target", height=10, width=14) {
 
   require(circlize)
-  require(complexHeatmap)
+  require(ComplexHeatmap)
 
   col_fun = colorRamp2(c(0, 5, 10), c("white", "orange", "red"))
 
