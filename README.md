@@ -55,8 +55,7 @@ Results will be saved into three different folders: hubGenes, Net and results. R
 
 ## Credits
 
-The authors of the package are Alicia Gómez-Pascual, PhD student, Funded by the Seneca Foundation and Juan A. Botía, Professor from the Universidad de Murcia. This package was developped under the supervision of Laura Ibañez from Washington University. The development of this package has been possible thanks to the previous work of Guillermo Rocamora from UCL GOS Institute of Child Health. 
+The authors of the package are Alicia Gómez-Pascual, PhD student, Funded by the Seneca Foundation and Juan A. Botía, Professor from the Universidad de Murcia, Spain. This methods was developed with the collaboration of Laura Ibañez from Washington University in Saint Louis, USA. The development of the software and some aspects of the algorithm design have been possible thanks to the previous works of Guillermo Rocamora at GOS Institute of Child Health, University College London, UK. We also thank Mina Ryten and Sonia García at GOS Institute of Child Health for their previous works.
 
-
-
+ 
 
