@@ -27,19 +27,20 @@ selectAppearanceRatio <- function(hubGenes) {
   colnames(df)[1] <- "metric"
 
   p1 <- ggplot(df, aes(x=cutoff, y=nHubs)) +
-    geom_point() +
-    theme_classic() +
-    theme(text=element_text(size=14)) +
-    ylab("Number of hub genes") +
-    xlab("Ratio of appearance")
+               geom_point() +
+               theme_classic() +
+               theme(text=element_text(size=15)) +
+               ylab("Number of seeds") +
+               xlab("Ratio of appearance (r)") +
+               geom_text(aes(label=nHubs), vjust=-0.5)
 
   p2 <- ggplot(df, aes(x=cutoff, y=metric, color=set, group=set)) +
-    geom_point() +
-    geom_line() +
-    theme_classic() +
-    theme(text=element_text(size=14)) +
-    ylab(ylab) +
-    xlab("Ratio of appearance")
+               geom_point() +
+               geom_line() +
+               theme_classic() +
+               theme(text=element_text(size=15)) +
+               ylab("R2") +
+               xlab("Ratio of appearance")
 
   return(list(nHubs=p1, stats=p2))
 }
@@ -133,8 +134,8 @@ plotModulesOverlap <- function(name1="TGCN1",
                                main="",
                                diag=T,
                                other=F,
-                               cex.text=0.8,
-                               cex.lab=0.8) {
+                               cex.text=0.6,
+                               cex.lab=0.6) {
 
   # Load library
   require(WGCNA)
@@ -806,31 +807,33 @@ plotCTenrich <- function(ct, target="target", height=10, width=14) {
   rownames(matrix) <- gsub("_", " ", rownames(matrix))
   colnames(matrix) <- modulesNames
 
+  matrix <- t(matrix)
+
   if(nrow(matrix)>2) {
     ht <- Heatmap(matrix,
                   name = "-log10P",
-                  column_title = target,
-                  column_title_gp=grid::gpar(fontsize = 11),
-                  row_title = "Cell type markers",
+                  column_title = "Cell type markers",
+                  row_title_gp=grid::gpar(fontsize = 11),
+                  row_title = paste0(target, " modules"),
                   col = col_fun,
                   na_col = "black",
-                  column_names_rot = 45,
+                  row_names_rot = 45,
                   border = TRUE,
                   row_gap = unit(1.5, "mm"),
-                  column_gap = unit(1.5, "mm"),
-                  clustering_method_rows = "ward.D2",
+                  row_gap = unit(1.5, "mm"),
                   clustering_method_columns = "ward.D2",
-                  column_names_gp = grid::gpar(fontsize = 8),
+                  clustering_method_rows = "ward.D2",
                   row_names_gp = grid::gpar(fontsize = 8),
+                  column_names_gp = grid::gpar(fontsize = 8),
                   heatmap_height = unit(height, "cm"),
                   heatmap_width = unit(width, "cm"),
-                  cluster_rows = T,
-                  cluster_columns = F,
-                  show_row_dend = FALSE,
+                  cluster_columns = T,
+                  cluster_rows = F,
+                  show_column_dend = FALSE,
                   heatmap_legend_param = list(
                     legend_direction = "horizontal",
                     legend_width = unit(3, "cm")),
-                  row_names_max_width = max_text_width(rownames(matrix),
+                  row_names_max_width = max_text_width(colnames(matrix),
                                                        gp = gpar(fontsize = 10)))
 
     draw(ht, heatmap_legend_side="bottom")
@@ -846,8 +849,6 @@ plotCTenrich <- function(ct, target="target", height=10, width=14) {
 #' plotModuleTraitCorr - It plots the associations between traits and modules eigengenes.
 #' @param MEs a data frame containing modules eigengenes with modules as columns and samples as rows
 #' @param covs a data frame containing the donors traits
-#' @param cex.lab.x the size of the x axis labels
-#' @param cex.lab.y the size of the y axis labels
 #' @param height the height of the plots
 #' @param width the width of the plots
 #' @param main the title of the plot
@@ -858,7 +859,7 @@ plotCTenrich <- function(ct, target="target", height=10, width=14) {
 #' @export
 #' @examples
 
-plotModuleTraitCorr <- function(MEs, covs=NULL, cex.lab.x=0.9, cex.lab.y=0.7, height=10, width=8,
+plotModuleTraitCorr <- function(MEs, covs=NULL, height=12, width=10,
                            main="Module-trait relationships", method="spearman", max=10, ylab="Modules"){
   require(ComplexHeatmap)
   require(WGCNA)
@@ -926,12 +927,12 @@ plotModuleTraitCorr <- function(MEs, covs=NULL, cex.lab.x=0.9, cex.lab.y=0.7, he
                     na_col = "black",
                     column_names_rot = 45,
                     border = TRUE,
-                    row_gap = unit(1.5, "mm"),
-                    column_gap = unit(1.5, "mm"),
+                    row_gap = unit(1.2, "mm"),
+                    column_gap = unit(1.2, "mm"),
                     clustering_method_rows = "ward.D2",
                     clustering_method_columns = "ward.D2",
-                    column_names_gp = grid::gpar(fontsize = 8),
-                    row_names_gp = grid::gpar(fontsize = 7),
+                    column_names_gp = grid::gpar(fontsize = 10),
+                    row_names_gp = grid::gpar(fontsize = 9),
                     heatmap_height = unit(height, "cm"),
                     heatmap_width = unit(width, "cm"),
                     cluster_rows = T,
@@ -961,8 +962,8 @@ plotModuleTraitCorr <- function(MEs, covs=NULL, cex.lab.x=0.9, cex.lab.y=0.7, he
                      column_gap = unit(1.5, "mm"),
                      clustering_method_rows = "ward.D2",
                      clustering_method_columns = "ward.D2",
-                     column_names_gp = grid::gpar(fontsize = 8),
-                     row_names_gp = grid::gpar(fontsize = 7),
+                     column_names_gp = grid::gpar(fontsize = 10),
+                     row_names_gp = grid::gpar(fontsize = 9),
                      heatmap_height = unit(height, "cm"),
                      heatmap_width = unit(width, "cm"),
                      cluster_rows = T,
@@ -971,7 +972,7 @@ plotModuleTraitCorr <- function(MEs, covs=NULL, cex.lab.x=0.9, cex.lab.y=0.7, he
                        legend_direction = "horizontal",
                        legend_width = unit(4, "cm")),
                      row_names_max_width = max_text_width(rownames(matrix),
-                                                          gp = gpar(fontsize = 8)))
+                                                          gp = gpar(fontsize = 9)))
 
     draw(htCor, heatmap_legend_side="bottom")
 
@@ -1117,15 +1118,16 @@ plotGOenrichSummary <- function(enrich) {
   stats <- stats[order(stats$sum_corrected, decreasing=T), ]
   stats$query <- factor(stats$query, levels=unique(stats$query))
 
-  stats$group <- rep("module", nrow(stats))
-  stats$group[stats$query=="hubs"] <- "hubs"
+  stats$group <- rep("Module", nrow(stats))
+  stats$query <- gsub("hubs", "seeds", stats$query)
+  stats$group[stats$query=="seeds"] <- "Seeds"
 
   p1 <- ggplot(data=stats, aes(x=query, y=sum_corrected, fill=group)) +
                geom_bar(stat="identity") +
                theme_classic() +
                theme(text=element_text(size=12),
                     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-               xlab("Gene sets") +
+               xlab("Module") +
                ylab("sum(-log10P) /\n module size") +
                labs(title="Enrichment per module") +
                geom_hline(yintercept=-log10(0.05), linetype="dashed", color = "red")

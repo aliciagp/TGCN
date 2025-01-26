@@ -43,26 +43,31 @@ tgcns <- readRDS(paste0(params$path, "/Net/", params$target, "_", params$tissue,
 ```{r}
 tgcns$selectRatio$nHubs + 
   theme(text=element_text(size=12)) + 
-  labs(title="Number of hubs per ratio of appearance")
+  labs(title="Number of seeds per ratio of appearance")
 
 tgcns$selectRatio$stats + 
   theme(legend.position="bottom", text=element_text(size=12)) +         
   labs(title="Train and test error per ratio of appearance")
 ```
 
-```{r}
-p <- lapply(tgcns$nets, function(cutoff) cutoff$GOenrich$plotStats + 
-              theme(text=element_text(size=10)))
-              # + scale_y_continuous(limits=c(0,100))) 
 
-if(length(p)>4) {
+
+
+```{r}
+p <- lapply(tgcns$nets, function(cutoff) cutoff$GOenrich$plotStats +
+              theme(text=element_text(size=10),
+                    axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))) 
+
+if(length(p)>=4) {
   nrow=2
+  ncol=2
 } else {
   nrow=1
+  ncol=length(p)
 }
 
-plot <- do.call("ggarrange", c(p, ncol=3, nrow=nrow, common.legend=T, legend="bottom"))
-annotate_figure(plot, top = text_grob("Enrichment per TGCN module", 
+plot <- do.call("ggarrange", c(p, ncol=ncol, nrow=nrow, common.legend=T, legend="bottom"))
+annotate_figure(plot, top = text_grob("Enrichment per TGCN module",
                face = "bold", size = 14))
 ```
 
@@ -75,7 +80,7 @@ create_section <- function(title, object) {
    # Inserts
    # pander::pandoc.header(title, level = 2)
    cat("###", title, "{.unnumbered}", "\n")
-  
+
    # Section contents
    if(title=="Modules composition" || title=="Modules GO terms") {
      pander::pandoc.table(object)
@@ -91,6 +96,8 @@ create_section <- function(title, object) {
    cat("\n\n")
 }
 
+
+pander::pandoc.tab
 ```
 
 
@@ -101,24 +108,26 @@ for(name in names(tgcns$nets)) {
   mylist <- list()
   mylist[["Module size selection"]] <- tgcns$nets[[name]]$net$moduleSizeSelectionPlot
   mylist[["Modules correlation"]] <- tgcns$nets[[name]]$net$plotCorr
-  mylist[["Modules composition"]] <- tgcns$nets[[name]]$net$modules
+  modules <- tgcns$nets[[name]]$net$modules
+  colnames(modules) <- c("seed", "added", "correlation")
+  rownames(modules) <- NULL
+  mylist[["Modules composition"]] <- modules
   mylist[["Modules overlap"]] <- gsub(" figure", "", gsub("see ", "", tgcns$nets[[name]]$crossTabPlot$plot))
   mylist[["Modules GO enrichment stats"]] <- list(stats=tgcns$nets[[name]]$GOenrich$plotStats,
                                                   nterms=tgcns$nets[[name]]$GOenrich$plotNterms)
   terms <- tgcns$nets[[name]]$GOenrich$terms
   terms <- terms[, c("query", "p_value", "source", "term_name")]
+  rownames(terms) <- NULL
   mylist[["Modules GO terms"]] <- terms
   mylist[["Reduced GO terms"]] <- tgcns$nets[[name]]$GOenrich$plotReduced
   mylist[["Module-trait corr"]] <- tgcns$nets[[name]]$moduleTraitCorr$plot_pval
   mylist[["Cell type enrichment"]] <- tgcns$nets[[name]]$CTenrich$plot
-  
+
   for(section in names(mylist)) {
     create_section(title=section, object=mylist[[section]])
-    
+
   }
 }
-a <- tgcns$nets$c8$GOenrich$terms
-unlist(lapply(a$parents, function(x) paste0(x, collapse=", ")))
 
 ```
 

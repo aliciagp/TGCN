@@ -236,7 +236,7 @@ getLMmodel <- function(exprData,
   }
 
   # Data split
-  genes <- gsub("\\.", "-", genes)
+  # genes <- gsub("\\.", "-", genes)
   mydata <- exprData[match(genes, rownames(exprData)), ]
 
   ind.train.list <- getSamplingIndex(seed=seed,
@@ -361,11 +361,11 @@ getHubGenes <- function(exprData,
     # Apply lasso t times for feature selection purposes
     cat("Apply LASSO", t, "times for feature selection \n")
     models_lasso <- getLASSOmodels(exprData=exprData,
-                                       target=target,
-                                       t = t,
-                                       nfolds = nfolds,
-                                       train.split = train.split,
-                                       seed=seed)
+                                   target=target,
+                                   t = t,
+                                   nfolds = nfolds,
+                                   train.split = train.split,
+                                   seed=seed)
     # Save lasso models
     result <- list()
 
@@ -403,11 +403,11 @@ getHubGenes <- function(exprData,
       cat("Get final model and the cv error for cutoff",  c, "\n")
 
       finalModel <- getLMmodel(exprData=exprData,
-                                  target=target,
-                                  nfolds = nfolds,
-                                  train.split = train.split,
-                                  genes=hubGenes,
-                                  seed=seed)
+                              target=target,
+                              nfolds = nfolds,
+                              train.split = train.split,
+                              genes=hubGenes,
+                              seed=seed)
 
       lm_models[[paste0("cutoff", c)]] <- list(lm_models=finalModel, lm_genes_selected=finalModel$coeffs)
 
@@ -712,7 +712,7 @@ getModules <- function(hubs,
                               legend.text = element_text(size=8)) +
                          ylab(expression(paste("sum (-", log[10] ~ "Pval)/", "\n module size"))) +
                          xlab("Module size") +
-                         labs(color="hub gene") +
+                         labs(color="Seed") +
                          labs(shape="best enrichment")
 
     }
@@ -731,8 +731,8 @@ getModules <- function(hubs,
                             legend.text = element_text(size=8),
                             axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
                        ylab("|Pearson correlation|") +
-                       xlab("Hub gene") +
-                       labs(color="hub gene")
+                       xlab("Seed") +
+                       labs(color="Seed")
 
   net$hubGene <- factor(net$hubGene, levels=coeffs$gene)
 
@@ -835,7 +835,7 @@ getModulesAnnotation <- function(net,
   MEs <- WGCNA::moduleEigengenes(expr.data, colors, excludeGrey=F)$eigengenes
 
   if(!is.null(covs) & save==T) {
-    png(filename=paste0(path, "/results/", targetName, "_", tissueName, "_", cutoff, "_TGCN_moduleTraitCorr.png"), width=7, height=9, unit="cm", res=500)
+    png(filename=paste0(path, "/results/", targetName, "_", tissueName, "_", cutoff, "_TGCN_moduleTraitCorr.png"), width=12, height=15, unit="cm", res=500)
     traits <- plotModuleTraitCorr(MEs=MEs, covs=covs, ylab=paste0(targetName, " modules"), max=6,
                                     height=8, width=6)
     dev.off()
@@ -880,7 +880,7 @@ getModulesAnnotation <- function(net,
   }
 
   # CrossTabPlot
-  png(filename=paste0(path, "/results/", targetName, "_", tissueName, "_", cutoff, "_TGCN_crossTabPlot.png"), width=12, height=12, unit="cm", res=500)
+  png(filename=paste0(path, "/results/", targetName, "_", tissueName, "_", cutoff, "_TGCN_crossTabPlot.png"), width=15, height=15, unit="cm", res=500)
   ctp <- plotModulesOverlap(name1=targetName,
                             name2=targetName,
                             tgcn1=mynet,
