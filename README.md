@@ -40,7 +40,8 @@ testAllCutoffs(exprData=input,        # gene expression matrix
                maxTol=3,              # the maximum number of tries to get a better enrichment if approach=enrichment
                save=T,                # if save=T, results will be saved as separate files
                overwrite=T,           # if overwrite=T, modules annotation will be overwritten
-               approach="enrichment") # the approach selected to complete the hub genes modules
+               approach="enrichment", # the approach selected to complete the seed modules
+               report=T)              # if report=T, an automated report will be created
 
 ```
 
@@ -55,7 +56,7 @@ Results will be saved into three different folders: hubGenes, Net and results. R
 
 ## Credits
 
-The authors of the package are Alicia Gómez-Pascual, PhD student, Funded by the Seneca Foundation and Juan A. Botía, Professor from the Universidad de Murcia, Spain. This methods was developed with the collaboration of Laura Ibañez from Washington University in Saint Louis, USA. The development of the software and some aspects of the algorithm design have been possible thanks to the previous works of Guillermo Rocamora at GOS Institute of Child Health, University College London, UK. We also thank Mina Ryten and Sonia García at GOS Institute of Child Health for their previous works.
+The authors of the package are Alicia Gómez-Pascual, PhD student, Funded by Fundación Séneca and Juan A. Botía, Professor from the University of Murcia, Spain. This method was developed with the collaboration of Laura Ibañez from Washington University in Saint Louis, USA. The development of the software and some aspects of the algorithm design have been possible thanks to the previous work of Guillermo Rocamora at GOS Institute of Child Health, University College London, UK. We also thank Mina Ryten and Sonia García at GOS Institute of Child Health for their previous works.
 
  
 
