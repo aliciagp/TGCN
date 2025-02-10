@@ -820,7 +820,6 @@ plotCTenrich <- function(ct, target="target", height=10, width=14) {
                   row_names_rot = 45,
                   border = TRUE,
                   row_gap = unit(1.5, "mm"),
-                  row_gap = unit(1.5, "mm"),
                   clustering_method_columns = "ward.D2",
                   clustering_method_rows = "ward.D2",
                   row_names_gp = grid::gpar(fontsize = 8),
