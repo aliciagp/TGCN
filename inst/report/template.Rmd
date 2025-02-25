@@ -96,8 +96,6 @@ create_section <- function(title, object) {
    cat("\n\n")
 }
 
-
-pander::pandoc.tab
 ```
 
 
