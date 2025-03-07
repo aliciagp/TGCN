@@ -103,7 +103,6 @@ plotReducedGOterms <- function(go_results, module=T) {
 #' plotModulesOverlap - It applies a Fisher exact test for each pair of modules and represent the results. Only significant
 #' overlaps are colored. Each cell represents the number of genes that overlap and the color represents the -log10 p-value
 #' adjusted.
-#'
 #' @param name1 the name of the TGCN1
 #' @param name2 the name of the TGCN2 in case TGCN1!=TGCN2
 #' @param tgcn1 the TGCN whose modules we want to compare with TGCN2
@@ -139,6 +138,9 @@ plotModulesOverlap <- function(name1="TGCN1",
 
   # Load library
   require(WGCNA)
+
+  background1 <- gsub("\\..*", "", background1)
+  background2 <- gsub("\\..*", "", background2)
 
   # If we only have one TGCN
   if(is.null(tgcn2)) {

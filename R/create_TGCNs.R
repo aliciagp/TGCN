@@ -431,7 +431,6 @@ getHubGenes <- function(exprData,
 
 
 #' getGeneSetEnrichment - It applies a functional enrichment analysis for a gene set from both LASSO models or networks.
-#'
 #' @param lasso_models a list of LASSO models
 #' @param net a data frame containing the structure of the network (hub gene, gene and correlation columns)
 #' @param sources a vector with the names of the sources to be tested
@@ -458,7 +457,7 @@ getGeneSetEnrichment <- function(lasso_models=NULL, net=NULL,
 
     if(!is.null(net$hubGene)) {
       for(hub in unique(net$hubGene)) {
-        all.genes[[hub]] <- net$genes[net$hubGene==hub]
+        all.genes[[hub]] <- gsub("\\..*", "", net$genes[net$hubGene==hub])
       }
       if(hubs==T) {
         all.genes[["hubs"]] <- unique(net$hubGene)
@@ -467,7 +466,7 @@ getGeneSetEnrichment <- function(lasso_models=NULL, net=NULL,
     } else { # Get the enrichment for each wgcna module
 
       for(hub in unique(as.vector(net$moduleColors))) {
-        all.genes[[hub]] <- names(net$moduleColors)[net$moduleColors==hub]
+        all.genes[[hub]] <- gsub("\\..*", "", names(net$moduleColors)[net$moduleColors==hub])
       }
       if(hubs==T) {
         all.genes[["hubs"]] <- unique(as.vector(net$moduleColors))
@@ -502,6 +501,7 @@ getGeneSetEnrichment <- function(lasso_models=NULL, net=NULL,
     sumLogPval <- NULL
   }
 
+  sumLogPval
 
   return(list(enrichment=enrich, sumLogPval=sumLogPval))
 }
@@ -628,7 +628,7 @@ getModules <- function(hubs,
       C <- C[C$cor>abs(minCor), ]
       C <- C[order(abs(C$cor), decreasing=T), ] # gene set ordered by decreasing correlation with h
 
-      C$genes <- gsub("\\.", "-", C$genes)
+      # C$genes <- gsub("\\.", "-", C$genes)
 
       size <- s # initially, the size of the module (size) is the same as the minimum size (s)
 
@@ -1083,7 +1083,8 @@ testAllCutoffs <- function(exprData,
   }
 
   if(report==T) {
-    template=list.files(system.file("report", "", package = "TGCN"), full.names=T)
+    # template=list.files(system.file("report", "", package = "TGCN"), full.names=T)
+    template="C:/Users/alici/OneDrive/Documentos/paperJuan/TGCN/inst/report/template.Rmd"
 
     rmarkdown::render(input = template,
                       output_file = paste0(path, "/results/", targetName, "_", tissueName, "_TGCNs.html"),
