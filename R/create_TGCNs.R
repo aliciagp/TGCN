@@ -12,8 +12,7 @@
 getSamplingIndex <- function(seed=1234,
                              exprData,
                              train.split=0.7,
-                             t=10,
-                             size=NULL) {
+                             t=10) {
 
   set.seed(seed)
   samples <- list()
@@ -72,6 +71,11 @@ getMetrics <- function(model,
     predict.test <- predict(model, s = "lambda.min", newx = data.test, type=type)
   }
 
+
+  if(length(tab)>=3) {
+    type="multinomial"
+  }
+
   # Get the metrics
   if (type=="class") {
     train <- caret::confusionMatrix(as.factor(as.vector(predict.train)), as.factor(target.train), positive=levels(target.train)[2])
@@ -81,6 +85,32 @@ getMetrics <- function(model,
     rownames(results) <- c("train", "test")
     colnames(results) <- c("Accuracy", "Kappa", "Sensitivity", "Specificity")
     cm_test <- test$table
+
+  } else if (type=="multinomial") {
+    train <- caret::confusionMatrix(as.factor(as.vector(predict.train)), as.factor(target.train), positive=levels(target.train)[2])
+    test <- caret::confusionMatrix(as.factor(as.vector(predict.test)), as.factor(target.test), positive=levels(target.train)[2])
+
+    acc_train <- train$overall[1]
+    kappa_train <- train$overall[2]
+    sens_train <- mean(train$byClass[, 1])
+    spec_train <- mean(train$byClass[, 2])
+    mae_train <- MLmetrics::MAE(as.numeric(as.character(predict.train)), as.numeric(as.character(target.train)))
+
+    acc_test <- test$overall[1]
+    kappa_test <- test$overall[2]
+    sens_test <- mean(test$byClass[, 1])
+    spec_test <- mean(test$byClass[, 2])
+    mae_test <- MLmetrics::MAE(as.numeric(as.character(predict.test)), as.numeric(as.character(target.test)))
+
+    cm_test <- test$table
+
+    results <- data.frame(Accuracy=c(acc_train, acc_test),
+                          Kappa=c(kappa_train, kappa_test),
+                          Sensitivity=c(sens_train, sens_test),
+                          Specificity=c(spec_train, spec_test),
+                          MAE=c(mae_train, mae_test))
+    rownames(results) <- c("train", "test")
+
   } else {
     train <- c(MLmetrics::R2_Score(predict.train, target.train), MLmetrics::RMSE(predict.train, target.train))
     test <- c(MLmetrics::R2_Score(predict.test, target.test), MLmetrics::RMSE(predict.test, target.test))
@@ -119,6 +149,7 @@ getLASSOmodels <- function(exprData,
   # Load libraries
   require(glmnet)
   require(doParallel)
+  require(caret)
   cores <- detectCores()/2
   registerDoParallel(cores)
 
@@ -126,7 +157,7 @@ getLASSOmodels <- function(exprData,
   if(is.factor(target)) {
     tab <- table(target)
 
-    if(length(tab)==3) {
+    if(length(tab)>=3) {
       family <- "multinomial"
       type <- "class"
     } else if (length(tab)==2) {
@@ -158,21 +189,50 @@ getLASSOmodels <- function(exprData,
     data.test <- t(exprData[, -ind.train])
     target.test <- target[-ind.train]
 
+    data.train.b <- data.train
+    target.train.b <- target.train
+
+    # Class balance
+    # if(family!="gaussian") {
+    #   data.train2 <- data.frame(ID=rownames(data.train), data.train)
+    #   data.train2[1:5, 1:5]
+    #   down <- downSample(data.train2, target.train)
+    #   data.train.b <- down
+    #   rownames(data.train.b) <- down$ID
+    #   data.train.b$ID <- NULL
+    #   data.train.b$Class <- NULL
+    #
+    #   names(target.train) <- rownames(data.train)
+    #   target.train.b <- target.train[match(rownames(data.train.b), names(target.train))]
+    #   stopifnot(identical(names(target.train.b), rownames(data.train.b)))
+    # }
+
     # Create the model
-    cvfit <- glmnet::cv.glmnet(x=data.train,
-                               y=target.train,
+    cvfit <- glmnet::cv.glmnet(x=data.train.b,
+                               y=target.train.b,
                                nfolds = nfolds,
                                alpha = 1,
                                family = family,
                                parallel=TRUE,
                                keep=TRUE)
 
-    # coeffs <- getCoeffs(model=cvfit)
+    df <- data.frame(target=target.train.b, nfold=cvfit$foldid)
+    table(df$target, df$nfold)
 
-    coeffs <- data.table::setDT(as.data.frame(as.matrix(stats::coef(cvfit, s="lambda.min"))), keep.rownames=T)[-1, ]
-    colnames(coeffs) <- c("genes", "coeff")
-    coeffs <- coeffs[order(abs(coeffs$coef), decreasing=T), ]
-    coeffs <- coeffs[coeffs$coeff!=0, ]
+    if(family=="multinomial") {
+      coefs <- stats::coef(cvfit, s="lambda.min")
+      coefs2 <- lapply(coefs, function(x) x[which(x!=0), ][-1])
+      names(coefs2) <- paste0("name", 1:length(coefs2))
+      coefs2 <- unlist(coefs2)
+      names(coefs2) <- gsub("name.\\.", "", names(coefs2))
+      coefs3 <- data.frame(genes=names(coefs2), coeff=as.vector(coefs2))
+      coeffs <- coefs3[order(abs(coefs3$coeff), decreasing=T), ]
+    } else {
+      coeffs <- data.table::setDT(as.data.frame(as.matrix(stats::coef(cvfit, s="lambda.min"))), keep.rownames=T)[-1, ]
+      colnames(coeffs) <- c("genes", "coeff")
+      coeffs <- coeffs[order(abs(coeffs$coef), decreasing=T), ]
+      coeffs <- coeffs[coeffs$coeff!=0, ]
+    }
 
     metrics <- getMetrics(model=cvfit,
                           data.train=data.train,
@@ -220,7 +280,7 @@ getLMmodel <- function(exprData,
   if(is.factor(target)) {
     tab <- table(target)
 
-    if(length(tab)==3) {
+    if(length(tab)>=3) {
       family <- "multinomial"
       metric <- "Accuracy"
       classProbs <- TRUE
@@ -257,8 +317,8 @@ getLMmodel <- function(exprData,
     target.test <- factor(make.names(target.test), levels=c("X0", "X1"))
 
   } else if(family=="multinomial") {
-    target.train <- factor(make.names(target.train), levels=c("X0", "X1", "X2"))
-    target.test <- factor(make.names(target.test), levels=c("X0", "X1", "X2"))
+    target.train <- as.factor(make.names(target.train))
+    target.test <- as.factor(make.names(target.test))
   }
 
   # fitControl
@@ -344,7 +404,8 @@ getHubGenes <- function(exprData,
                         tissueName="tissue1",
                         targetName="target1",
                         force=F,
-                        save=T) {
+                        save=T,
+                        organism="hsapiens") {
 
   # Create directory if necessary
   if(!dir.exists(paste0(path, "/hubGenes/"))) {
@@ -370,7 +431,12 @@ getHubGenes <- function(exprData,
     result <- list()
 
     # Get hub genes enrichment for each cutoff
-    sumLogPval <- getGeneSetEnrichment(lasso_models=models_lasso)
+    count <- unlist(lapply(models_lasso, function(x) x$coeffs))
+    if(length(count)==0) {
+      stop("No hub genes detected")
+    }
+
+    sumLogPval <- getGeneSetEnrichment(lasso_models=models_lasso, organism=organism)
     enrichment <- sumLogPval$enrich
     sumLogPval <- sumLogPval$sumLogPval
 
@@ -440,7 +506,7 @@ getHubGenes <- function(exprData,
 #' @examples
 
 getGeneSetEnrichment <- function(lasso_models=NULL, net=NULL,
-                                 sources = c("GO", "KEGG", "REAC", "HP"), hubs=T) {
+                                 sources = c("GO", "KEGG", "REAC", "HP"), hubs=T, organism="hsapiens") {
 
   # Load libraries
   require(gprofiler2)
@@ -478,7 +544,7 @@ getGeneSetEnrichment <- function(lasso_models=NULL, net=NULL,
   enrich <- gprofiler2::gost(all.genes,
                              correction_method="g_SCS",
                              sources=sources,
-                             organism = "hsapiens",
+                             organism = organism,
                              exclude_iea = T)$result
 
   if(!is.null(enrich)) {
@@ -552,7 +618,8 @@ getModules <- function(hubs,
                        m=10,
                        minCor=0.3,
                        maxTol=3,
-                       approach=c("fixed", "coefficient", "enrichment")) {
+                       approach=c("fixed", "coefficient", "enrichment"),
+                       organism="hsapiens") {
 
   # Load library
   require(psych)
@@ -653,7 +720,7 @@ getModules <- function(hubs,
           mynet$moduleColors <- rep(h, length(G))
           names(mynet$moduleColors) <- G
 
-          E <- getGeneSetEnrichment(net=mynet, hubs=F)$sumLogPval # E(G)
+          E <- getGeneSetEnrichment(net=mynet, hubs=F, organism=organism)$sumLogPval # E(G)
 
           if(is.null(E)) { # if we found no enrichment, add this row to the table
             E <- data.frame(query=h, sum=0, numGenes=size, sum_corrected=0)
@@ -796,7 +863,8 @@ getModulesAnnotation <- function(net,
                                  cutoff,
                                  tissueName,
                                  targetName,
-                                 reduced=F) {
+                                 reduced=F,
+                                 organism="hsapiens") {
 
   # TGCN already characterized?
   if(!dir.exists(paste0(path, "/results/"))) {
@@ -812,7 +880,7 @@ getModulesAnnotation <- function(net,
 
   # Get the enrichment per module
   mynet <- net$net
-  enrich <- getGeneSetEnrichment(net=mynet)
+  enrich <- getGeneSetEnrichment(net=mynet, organism=organism)
   sumLogPval <- enrich$sumLogPval
   sumLogPval$name <- rep(cutoff, nrow(sumLogPval))
 
@@ -968,7 +1036,8 @@ testAllCutoffs <- function(exprData,
                            overwrite=T,
                            path=getwd(),
                            reduced=F,
-                           report=F) {
+                           report=F,
+                           organism="hsapiens") {
 
   # Load libraries
   require(WGCNA)
@@ -1083,8 +1152,8 @@ testAllCutoffs <- function(exprData,
   }
 
   if(report==T) {
-    # template=list.files(system.file("report", "", package = "TGCN"), full.names=T)
-    template="C:/Users/alici/OneDrive/Documentos/paperJuan/TGCN/inst/report/template.Rmd"
+    template=list.files(system.file("report", "", package = "TGCN"), full.names=T)
+    # template="C:/Users/alici/OneDrive/Documentos/paperJuan/TGCN/inst/report/template.Rmd"
 
     rmarkdown::render(input = template,
                       output_file = paste0(path, "/results/", targetName, "_", tissueName, "_TGCNs.html"),
