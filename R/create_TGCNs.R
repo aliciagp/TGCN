@@ -71,13 +71,8 @@ getMetrics <- function(model,
     predict.test <- predict(model, s = "lambda.min", newx = data.test, type=type)
   }
 
-
-  if(length(tab)>=3) {
-    type="multinomial"
-  }
-
   # Get the metrics
-  if (type=="class") {
+  if (type=="class" & length(tab)==2) {
     train <- caret::confusionMatrix(as.factor(as.vector(predict.train)), as.factor(target.train), positive=levels(target.train)[2])
     test <- caret::confusionMatrix(as.factor(as.vector(predict.test)), as.factor(target.test), positive=levels(target.train)[2])
     results <- as.data.frame(rbind(c(as.vector(train$overall[c(1,2)]), as.vector(train$byClass[c(1,2)])),
@@ -86,7 +81,7 @@ getMetrics <- function(model,
     colnames(results) <- c("Accuracy", "Kappa", "Sensitivity", "Specificity")
     cm_test <- test$table
 
-  } else if (type=="multinomial") {
+  } else if (type=="multinomial" & length(tab)>=3) {
     train <- caret::confusionMatrix(as.factor(as.vector(predict.train)), as.factor(target.train), positive=levels(target.train)[2])
     test <- caret::confusionMatrix(as.factor(as.vector(predict.test)), as.factor(target.test), positive=levels(target.train)[2])
 
@@ -191,21 +186,6 @@ getLASSOmodels <- function(exprData,
 
     data.train.b <- data.train
     target.train.b <- target.train
-
-    # Class balance
-    # if(family!="gaussian") {
-    #   data.train2 <- data.frame(ID=rownames(data.train), data.train)
-    #   data.train2[1:5, 1:5]
-    #   down <- downSample(data.train2, target.train)
-    #   data.train.b <- down
-    #   rownames(data.train.b) <- down$ID
-    #   data.train.b$ID <- NULL
-    #   data.train.b$Class <- NULL
-    #
-    #   names(target.train) <- rownames(data.train)
-    #   target.train.b <- target.train[match(rownames(data.train.b), names(target.train))]
-    #   stopifnot(identical(names(target.train.b), rownames(data.train.b)))
-    # }
 
     # Create the model
     cvfit <- glmnet::cv.glmnet(x=data.train.b,
