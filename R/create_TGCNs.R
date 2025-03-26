@@ -71,6 +71,10 @@ getMetrics <- function(model,
     predict.test <- predict(model, s = "lambda.min", newx = data.test, type=type)
   }
 
+  if (is.factor(target.train) & length(tab)>=3) {
+    type="multinomial"
+  }
+
   # Get the metrics
   if (type=="class" & length(tab)==2) {
     train <- caret::confusionMatrix(as.factor(as.vector(predict.train)), as.factor(target.train), positive=levels(target.train)[2])
@@ -89,13 +93,13 @@ getMetrics <- function(model,
     kappa_train <- train$overall[2]
     sens_train <- mean(train$byClass[, 1])
     spec_train <- mean(train$byClass[, 2])
-    mae_train <- MLmetrics::MAE(as.numeric(as.character(predict.train)), as.numeric(as.character(target.train)))
+    mae_train <- MLmetrics::MAE(as.numeric(gsub("X", "", as.character(predict.train))), as.numeric(gsub("X", "", as.character(target.train))))
 
     acc_test <- test$overall[1]
     kappa_test <- test$overall[2]
     sens_test <- mean(test$byClass[, 1])
     spec_test <- mean(test$byClass[, 2])
-    mae_test <- MLmetrics::MAE(as.numeric(as.character(predict.test)), as.numeric(as.character(target.test)))
+    mae_test <- MLmetrics::MAE(as.numeric(gsub("X", "", as.character(predict.test))), as.numeric(gsub("X", "", as.character(target.test))))
 
     cm_test <- test$table
 
@@ -183,7 +187,6 @@ getLASSOmodels <- function(exprData,
     target.train <- target[ind.train]
     data.test <- t(exprData[, -ind.train])
     target.test <- target[-ind.train]
-
     data.train.b <- data.train
     target.train.b <- target.train
 
