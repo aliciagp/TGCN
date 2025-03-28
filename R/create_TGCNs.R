@@ -25,6 +25,30 @@ getSamplingIndex <- function(seed=1234,
   return(samples)
 }
 
+#' applyDownSampling - It balances the classes for classification problems
+#'
+#' @param target.train the categorical covariate values
+#' @param seed the seed number to ensure the reproducibility of the results
+#' @return the IDs of the samples selected
+#' @export
+#' @examples
+
+applyDownSampling <- function(target.train,
+                            seed=1234) {
+
+  levels <- levels(target.train)
+  min <- min(table(target.train))
+  indexes <- list()
+
+  for (level in levels) {
+    indexes[[level]] <- sample(which(target.train %in% level), min)
+  }
+
+  selected <- unlist(indexes)
+
+  return(selected)
+}
+
 
 #' getMetrics - It returns the performance of the model created for both train and test sets
 #'
@@ -187,20 +211,22 @@ getLASSOmodels <- function(exprData,
     target.train <- target[ind.train]
     data.test <- t(exprData[, -ind.train])
     target.test <- target[-ind.train]
-    data.train.b <- data.train
-    target.train.b <- target.train
+
+    if(is.factor(target)) {
+      selected <- applyDownSampling(target.train,
+                                    seed=1234)
+    }
+
+    data.train.b <- data.train[selected, ]
+    target.train.b <- target.train[selected]
 
     # Create the model
     cvfit <- glmnet::cv.glmnet(x=data.train.b,
                                y=target.train.b,
-                               nfolds = nfolds,
                                alpha = 1,
                                family = family,
                                parallel=TRUE,
                                keep=TRUE)
-
-    df <- data.frame(target=target.train.b, nfold=cvfit$foldid)
-    table(df$target, df$nfold)
 
     if(family=="multinomial") {
       coefs <- stats::coef(cvfit, s="lambda.min")
@@ -218,9 +244,9 @@ getLASSOmodels <- function(exprData,
     }
 
     metrics <- getMetrics(model=cvfit,
-                          data.train=data.train,
+                          data.train=data.train.b,
                           data.test=data.test,
-                          target.train=target.train,
+                          target.train=target.train.b,
                           target.test=target.test)
 
 
@@ -228,7 +254,7 @@ getLASSOmodels <- function(exprData,
                                            coeffs=coeffs,
                                            metrics=metrics$results,
                                            confusionMatrixTest=metrics$cm_test,
-                                           trainSamples=rownames(data.train),
+                                           trainSamples=rownames(data.train.b),
                                            testSamples=rownames(data.test))
   }
 
@@ -258,24 +284,28 @@ getLMmodel <- function(exprData,
                        seed=1234) {
   # Load libraries
   require(caret)
+  summaryFunction <- defaultSummary
 
   # Factor or numeric?
   if(is.factor(target)) {
     tab <- table(target)
+    sampling <- "down"
 
     if(length(tab)>=3) {
       family <- "multinomial"
-      metric <- "Accuracy"
+      metric <- "Mean_Balanced_Accuracy"
       classProbs <- TRUE
+      summaryFunction = multiClassSummary
     } else if (length(tab)==2) {
       family <- "binomial"
-      metric <- "Accuracy"
+      metric <- "Mean_Balanced_Accuracy"
       classProbs <- TRUE
     }
   } else {
     family <- "gaussian"
     classProbs <- FALSE
     metric <- "RMSE"
+    sampling <- "none"
   }
 
   # Data split
@@ -304,14 +334,14 @@ getLMmodel <- function(exprData,
     target.test <- as.factor(make.names(target.test))
   }
 
-  # fitControl
   fitControl <- trainControl(method = "repeatedcv",
                              number = nfolds,
                              repeats = 10,
                              allowParallel = TRUE,
                              savePredictions = T,
                              classProbs = classProbs,
-                             summaryFunction = defaultSummary)
+                             summaryFunction = summaryFunction,
+                             sampling=sampling)
 
   # train the model
   model <- train(x=data.train,
@@ -381,7 +411,7 @@ getHubGenes <- function(exprData,
                         train.split=0.7,
                         nfolds=5,
                         t=10,
-                        seed=seed,
+                        seed=1234,
                         cutoffs=NULL,
                         path=getwd(),
                         tissueName="tissue1",
